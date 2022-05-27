@@ -1,0 +1,69 @@
+---
+title: "Prac2"
+author: "Xuan Zheng & Albert Casanova González"
+date: "5/27/2022"
+output: html_document
+---
+Instalamos y cargamos las librerías ggplot2 y dplry.
+```{r message= FALSE, warning=FALSE}
+# https://cran.r-project.org/web/packages/ggplot2/index.html
+if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
+# https://cran.r-project.org/web/packages/dplyr/index.html
+if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+```
+
+******
+# Lectura del dataset
+******
+Cargamos el fichero de datos.
+```{r message= FALSE, warning=FALSE}
+titanic <- read.csv('train.csv')
+```
+
+Verificamos la estructura del juego de datos.
+```{r message= FALSE, warning=FALSE}
+str(titanic)
+```
+
+## Detección de valores ceros y valores perdidos
+1. valores ceros
+Con la función *summary*, podemos ver las columnas que contienen valores 0, por ejemplo *SibSp*, *Parch*, *Fare*, etc. Pero consideramos que estos valores 0 tiene un significado real. Por lo tanto, no debemos mofidicarlo. 
+```{r message= FALSE, warning=FALSE}
+summary(titanic)
+```
+
+2. valores perdidos
+Primero, buscamos los valores NAs que existen en el dataset y imputarlos con la mediana de edad de todos los registros.
+```{r message= FALSE, warning=FALSE}
+colSums(is.na(titanic)) # hay valores perdidos en Age
+titanic$Age[is.na(titanic$Age)] <- median(titanic$Age,na.rm=T)
+```
+
+Segundo, buscado los strings vacíos que existen en el dataset y sustituirlos con 'Desconocido' para que queden más claro.
+```{r message= FALSE, warning=FALSE}
+colSums(titanic=="") # hay strings vacíos en Embarked y Cabin
+titanic$Embarked[titanic$Embarked==""] <- "Desconocido"
+titanic$Cabin[titanic$Cabin==""] <- "Desconocido"
+```
+
+## Detección de valores extremos 
+Aplicamos el diagrama de caja en las columnas numéricas para encontrar los valores extremos.
+```{r message= FALSE, warning=FALSE}
+boxplot(titanic$Age)
+boxplot(titanic$SibSp)
+boxplot(titanic$Fare)
+```
+Podemos ver que existen valores extremos en las columnas *Age*, *SibSp* y *Fare*. 
+
+Aplicamos el histograma para verificar la distribución de dichas columnas.
+```{r message= FALSE, warning=FALSE}
+hist(titanic$Age)
+hist(titanic$SibSp)
+hist(titanic$Fare)
+```
+
+Como los registros de valores extremos de *SibSp* y *Fare* son muy pocos, los eliminamos. Vemos que la distribución de *Age* más o menos sigue la normalidad, entonces dejamos los datos así.
+```{r message= FALSE, warning=FALSE}
+titanic <- titanic[titanic$SibSp!=8, ]
+titanic <- titanic[titanic$Fare<500, ]
+```
