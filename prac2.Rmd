@@ -67,3 +67,124 @@ Como los registros de valores extremos de *SibSp* y *Fare* son muy pocos, los el
 titanic <- titanic[titanic$SibSp!=8, ]
 titanic <- titanic[titanic$Fare<500, ]
 ```
+
+## 4. Análisis de los datos.
+
+Vamos a eliminar variables que no aportan demasiado al estudio que estamos realizando, Estas son PassengerId, Name, Ticket y Cabin
+
+```{r message= FALSE, warning=FALSE}
+titanic <- titanic %>% select(-c(PassengerId, Name, Ticket, Cabin))
+```
+
+Transformamos las variables Survived, Pclass, Sex y Embarked a factor. La variable Age a int
+
+```{r message= FALSE, warning=FALSE}
+titanic$Survived<-as.factor(titanic$Survived)
+titanic$Pclass<-as.factor(titanic$Pclass)
+titanic$Sex<-as.factor(titanic$Sex)
+titanic$Embarked<-as.factor(titanic$Embarked)
+titanic$Age<-as.integer(titanic$Age)
+```
+
+
+
+## Normalidad
+```{r message= FALSE, warning=FALSE}
+# Instalamos las librerias necesarias
+if(!require(nortest)){
+    install.packages('nortest', repos='http://cran.us.r-project.org')
+    library(nortest)
+}
+```
+
+
+```{r message= FALSE, warning=FALSE}
+qqnorm(titanic$Age)
+qqline(titanic$Age)
+```
+
+Como podemos observar los puntos no están sobre la línea diagonal, por lo que podemos descartar normalidad en los datos.
+
+```{r message= FALSE, warning=FALSE}
+lillie.test(titanic$Age)
+```
+Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
+
+```{r message= FALSE, warning=FALSE}
+qqnorm(titanic$Fare)
+qqline(titanic$Fare)
+```
+Como podemos observar los puntos no están sobre la línea diagonal, por lo que podemos descartar normalidad en los datos.
+
+```{r message= FALSE, warning=FALSE}
+lillie.test(titanic$Fare)
+```
+Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
+
+
+## 4.3. Aplicación de pruebas estadísticas para comparar los grupos de datos
+
+### Predicción
+```{r message= FALSE, warning=FALSE}
+# Separamos en dataset de train y de test
+split = sort(sample(nrow(titanic), nrow(titanic)*0.8))
+
+train <- titanic[split,]
+test <- titanic[-split,]
+```
+
+```{r message= FALSE, warning=FALSE}
+# Creamos el modelo de regresión logística
+model_logist <- glm(Survived ~ . , data = train, family ="binomial")
+```
+
+```{r message= FALSE, warning=FALSE}
+summary(model_logist)
+```
+
+```{r message= FALSE, warning=FALSE}
+# Instalamos los paquetes requeridos
+if(!require(caret)){
+    install.packages('caret', repos='http://cran.us.r-project.org')
+    library(caret)
+}
+```
+
+```{r message= FALSE, warning=FALSE}
+# Realizamos predicción sobre el test
+pred_test = predict(model_logist, test, type = "response")
+```
+
+```{r message= FALSE, warning=FALSE}
+# Definimos a partir de qué probabilidad queremos que asigne a 1 o a 0 y mostramos la matriz de confusión
+pred_test = as.factor(ifelse(pred_test >= 0.5, yes = 1, no = 0))
+confusionMatrix(test$Survived, pred_test)
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
+
+```{r message= FALSE, warning=FALSE}
+
+```
