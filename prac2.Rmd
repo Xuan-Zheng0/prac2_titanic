@@ -2,7 +2,10 @@
 title: "Prac2"
 author: "Xuan Zheng & Albert Casanova González"
 date: "5/27/2022"
-output: html_document
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
 ---
 Instalamos y cargamos las librerías necesarias
 ```{r message= FALSE, warning=FALSE}
@@ -13,10 +16,18 @@ if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
 if (!require('nortest')) install.packages('nortest'); library('nortest')
 if (!require('caret')) install.packages('caret'); library('caret')
 if (!require('pROC')) install.packages('pROC'); library('pROC')
+if (!require('C50')) install.packages('C50'); library('C50')
 ```
 
 ******
-# Lectura del dataset
+# 1. Descripción del dataset
+******
+El dataset escogido es Titanic - Machine Learning from Disaster, facilitado como ejemplo en el enunciado de la asignatura, a través del siguiente enlace: https://www.kaggle.com/c/titanic
+
+En este dataset encontramos información sobre los pasajeros que se encontraban a bordo en el último viaje del transatlántico RMS Titanic. Es un juego de datos “clásico” si hablamos de trabajar con algoritmos de clasificación, ya que contiene información sobre si los pasajeros sobrevivieron o no, haciéndolo interesante y siendo un buen punto de partida para practicar con este tipo de problemas.
+
+******
+# 2. Lectura del dataset
 ******
 Cargamos el fichero de datos.
 ```{r message= FALSE, warning=FALSE}
@@ -28,21 +39,26 @@ Verificamos la estructura del juego de datos.
 str(titanic)
 ```
 
+******
+# 3. Limpieza de los datos
+******
 ## Detección de valores ceros y valores perdidos
 1. valores ceros
-Con la función *summary*, podemos ver las columnas que contienen valores 0, por ejemplo *SibSp*, *Parch*, *Fare*, etc. Pero consideramos que estos valores 0 tiene un significado real. Por lo tanto, no debemos mofidicarlo. 
+
+Con la función *summary*, podemos ver las columnas que contienen valores 0, por ejemplo *SibSp*, *Parch*, *Fare*, etc. Pero consideramos que estos valores 0 tiene un significado real. Por lo tanto, no debemos modificarlo. 
 ```{r message= FALSE, warning=FALSE}
 summary(titanic)
 ```
 
 2. valores perdidos
-Primero, buscamos los valores NAs que existen en el dataset y imputarlos con la mediana de edad de todos los registros.
+
+Primero, buscamos los valores NAs que existen en el dataset e imputarlos con la mediana de edad de todos los registros.
 ```{r message= FALSE, warning=FALSE}
 colSums(is.na(titanic)) # hay valores perdidos en Age
 titanic$Age[is.na(titanic$Age)] <- median(titanic$Age,na.rm=T)
 ```
 
-Segundo, buscamos los strings vacíos que existen en el dataset y sustituirlos con 'Desconocido' para que queden más claro.
+Segundo, buscamos los strings vacíos que existen en el dataset y sustituirlos con 'Desconocido' para que queden más claros        .
 ```{r message= FALSE, warning=FALSE}
 colSums(titanic=="") # hay strings vacíos en Embarked y Cabin
 titanic$Embarked[titanic$Embarked==""] <- "Desconocido"
@@ -52,17 +68,23 @@ titanic$Cabin[titanic$Cabin==""] <- "Desconocido"
 ## Detección de valores extremos 
 Aplicamos el diagrama de caja en las columnas numéricas para encontrar los valores extremos.
 ```{r message= FALSE, warning=FALSE}
-boxplot(titanic$Age)
-boxplot(titanic$SibSp)
-boxplot(titanic$Fare)
+age_boxplot <- ggplot(data=titanic, aes(x=Age))+geom_boxplot()+ coord_flip()
+sibsp_boxplot <- ggplot(data=titanic, aes(x=SibSp))+geom_boxplot()+ coord_flip()
+fare_boxplot <- ggplot(data=titanic, aes(x=Fare))+geom_boxplot()+ coord_flip()
+
+grid.arrange(age_boxplot, sibsp_boxplot, fare_boxplot, ncol = 3, heights = c(2,1))
 ```
+
+
 Podemos ver que existen valores extremos en las columnas *Age*, *SibSp* y *Fare*. 
 
-Aplicamos el histograma para verificar la distribución de dichas columnas.
+Mostramos los histogramas para verificar la distribución de dichas columnas.
 ```{r message= FALSE, warning=FALSE}
-hist(titanic$Age)
-hist(titanic$SibSp)
-hist(titanic$Fare)
+age_hist <- ggplot(data=titanic, aes(x=Age))+geom_histogram(bins=8)
+sibsp_hist <- ggplot(data=titanic, aes(x=SibSp))+geom_histogram(bins=8)
+fare_hist <- ggplot(data=titanic, aes(x=Fare))+geom_histogram(bins=10)
+
+grid.arrange(age_hist, sibsp_hist, fare_hist, ncol = 3, heights = c(2,1))
 ```
 
 Como los registros de valores extremos de *SibSp* y *Fare* son muy pocos, los eliminamos. Vemos que la distribución de *Age* más o menos sigue la normalidad, entonces dejamos los datos así.
@@ -71,15 +93,17 @@ titanic <- titanic[titanic$SibSp!=8, ]
 titanic <- titanic[titanic$Fare<500, ]
 ```
 
-## 4. Análisis de los datos.
+******
+# 4. Análisis de los datos
+******
 
-Vamos a eliminar variables que no aportan demasiado al estudio que estamos realizando, Estas son PassengerId, Name, Ticket y Cabin
+Vamos a eliminar variables que no aportan demasiado al estudio que estamos realizando, Estas son PassengerId, Name, Ticket y Cabin.
 
 ```{r message= FALSE, warning=FALSE}
 titanic <- titanic %>% select(-c(PassengerId, Name, Ticket, Cabin))
 ```
 
-Transformamos las variables Survived, Pclass, Sex y Embarked a factor. La variable Age a int
+Transformamos las variables Survived, Pclass, Sex y Embarked a factor. La variable Age a numérico entero.
 
 ```{r message= FALSE, warning=FALSE}
 titanic$Survived<-as.factor(titanic$Survived)
@@ -90,12 +114,13 @@ titanic$Age<-as.integer(titanic$Age)
 ```
 
 
-
 ## Normalidad
 
+Con las funciones qqnorm y qqline podemos realizar una inspección visual de las variables Age y Fare.
 ```{r message= FALSE, warning=FALSE}
 qqnorm(titanic$Age)
 qqline(titanic$Age)
+
 ```
 
 Como podemos observar los puntos no están sobre la línea diagonal, por lo que podemos descartar normalidad en los datos.
@@ -109,6 +134,7 @@ Aplicamos el test de Lilliefors para comprobar la normalidad. Con el valor del p
 qqnorm(titanic$Fare)
 qqline(titanic$Fare)
 ```
+
 Como podemos observar los puntos no están sobre la línea diagonal, por lo que podemos descartar normalidad en los datos.
 
 ```{r message= FALSE, warning=FALSE}
@@ -116,9 +142,17 @@ lillie.test(titanic$Fare)
 ```
 Aplicamos el test de Lilliefors para comprobar la normalidad. Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
 
+## Homogeneidad de la varianza
+
+```{r message= FALSE, warning=FALSE}
+bartlett.test(Fare~Survived, data=titanic)
+bartlett.test(Age~Survived, data=titanic)
+```
+
+Bajo un nivel de significación de 0.05, los grupos de *Fare* y *Age* clasificados por *Survived* no cumplen la homogeneidad de la varianza.
 
 ## 4.3. Aplicación de pruebas estadísticas para comparar los grupos de datos
-### Primera visualizacion 
+### Primera visualización 
 Para tener una idea general sobre la distribución de las variables, hacemos la primera visualización.
 
 1. Visualizamos las variables categóricas contra la variable *Survived*
@@ -143,10 +177,10 @@ plot_mean_fare <- ggplot(titanic, aes(x = Survived, y = Fare)) + geom_violin(fil
 agg_mean_age <- aggregate(titanic$Age,by=list(titanic$Survived),FUN=mean)
 plot_mean_age <- ggplot(titanic, aes(x = Survived, y = Age)) + geom_violin(fill = "grey") + geom_boxplot(width = .2, fill = "lightyellow")
 
-grid.arrange(plot_mean_fare, plot_mean_age, ncol=2)
+grid.arrange(plot_mean_fare, plot_mean_age, ncol=2, heights = c(2,1))
 ```
 
-Con las visualizaciones anteriores, podemos observar que existe mucha diferencia de la probalibidad de supervivencia por género, clase, edad. Para comprobar nuestras suposiciones, realizamos los contrastes de hipótesis. 
+Con las visualizaciones anteriores, podemos observar que existe mucha diferencia en la probabilidad de supervivencia por género, clase, edad. Para comprobar nuestras suposiciones, realizamos los contrastes de hipótesis. 
 
 ### Contraste de hipótesis
 1. Las variables independientes categóricas
@@ -181,7 +215,10 @@ anova(gmodel, test = "Chisq")
 
 Como hemos observado anteriormente, *PClass*, *Sex*, *Age* han demostrado un nivel más significativo entre todas las variables independientes.
 
-### Predicción
+******
+# 5. Predicción
+******
+
 ```{r message= FALSE, warning=FALSE}
 # Separamos en dataset de train y de test
 set.seed(123)
@@ -191,8 +228,8 @@ train <- titanic[split,]
 test <- titanic[-split,]
 ```
 
-
-El primer modelo de regresión logística contará con las variables PClass, Sex, y Age, que son las más relevantes
+## Regresión logística
+El primer modelo de regresión logística contará con las variables *PClass*, *Sex*, y *Age*, que son las más relevantes
 ```{r message= FALSE, warning=FALSE}
 model_logist <- glm(Survived ~ Pclass + Sex + Age , data = train, family ="binomial")
 
@@ -216,7 +253,7 @@ confusionMatrix(test$Survived, pred_test)
 Obtenemos una precisión del 76,27%
 
 
-Creamos un segundo modelo de regresión logística, esta vez con todas las variables excepto AgeCut.
+Creamos un segundo modelo de regresión logística, esta vez con todas las variables excepto *AgeCut*.
 ```{r message= FALSE, warning=FALSE}
 # Creamos el modelo de regresión logística
 model_logist2 <- glm(Survived ~ . - AgeCut , data = train, family ="binomial")
@@ -236,8 +273,9 @@ confusionMatrix(test$Survived, pred_test2)
 ```
 La precisión también mejora, hemos obtenido una precisión del 79.1%. 
 
+## ROC y AUC
 
-Dibujamos la curva ROC
+Con los datos del segundo modelo, que es el con el que mejor precisión obtenemos, dibujamos la curva ROC.
 
 ```{r message= FALSE, warning=FALSE}
 prob=predict(model_logist2, train, type="response")
@@ -253,8 +291,62 @@ Calculamos el area debajo de la curva
 ```{r message= FALSE, warning=FALSE}
 auc(r)
 ```
-Con los resultados del AUROC, podemos decir que el modelo discrimina de forma excelente.
+Con los resultados del AUC, podemos decir que el modelo discrimina de forma excelente.
+
+## Árbol de decisión
 
 ```{r message= FALSE, warning=FALSE}
-
+# Separamos las variables independientes y la variable dependiente
+trainX <- train[2:8]
+trainy <- as.factor(train[,1])
+testX <- test[2:8]
+testy <- as.factor(test[,1])
 ```
+
+Primero, usamos todas las variables originales para construir un árbol de decisión, y observamos las reglas de clasificación.
+```{r message= FALSE, warning=FALSE}
+tree <- C50::C5.0(trainX, trainy, rules = TRUE)
+summary(tree)
+```
+
+Generamos predicciones en el conjunto de test. 
+```{r message= FALSE, warning=FALSE}
+pred <- predict(tree, testX, type='class')
+
+table(testy, Predicted=pred)
+sum(pred==testy)/length(pred)
+```
+
+Obtenemos una precisión del 79.1%.
+
+Para visualizar mejor las reglas importantes del árbol, volvemos a construir el modelo con las variables *PClass*, *Sex*, y *Age* y mostramos el árbol.
+```{r message= FALSE, warning=FALSE}
+trainX_selected <- train[2:4]
+tree_selected <- C50::C5.0(trainX_selected, trainy)
+
+plot(tree_selected)
+```
+
+
+### Generación .csv de los datos finales analizados 
+```{r message= FALSE, warning=FALSE}
+write.csv(titanic, "train_clean.csv", row.names = FALSE)
+```
+
+
+
+
+******
+# 6. Conclusiones
+******
+
+Tras un primer análisis exploratorio de las variables que conforman el dataset, analizamos los valores cero, los valores perdidos y vacíos, así como los valores extremos.
+
+En cuanto a los valores cero, no decidimos modificarlos ya que consideramos que tienen sentido, por ejemplo, aparecen en las variables SibSp, Parch, Fare, … Para los valores perdidos, vemos que únicamente aparecen en la variable Age, por lo que imputamos la mediana de la edad en los registros con “NA’s”. En los strings vacíos, que aparecen en las variables Cabin y Embarked, sustituímos por “Desconocido”. Analizando los valores extremos, decidimos eliminar los de las variables SibSp y Fare.
+
+En cuanto al análisis de normalidad, encontramos que tanto la variable Age y como Fare, que son las numéricas que hemos mantenido en el dataset, no siguen una distribución normal de los datos. Tampoco cumplen la homogeneidad de la varianza.
+Hemos realizado visualizaciones de las variables categóricas y numéricas contra la variable objetivo Survived, donde observamos que existe diferencia según el género, la edad, o la clase a la que pertenecía el pasajero. Tras realizar contrastes de hipótesis concluimos que las variables Sex, Age y Pclass tienen son las más significativas de las variables independientes.
+
+Con estos datos, hemos generado predicciones mediante regresiones logísticas y árboles de decisión. Hemos realizado un primer modelo de regresión logística únicamente con las variables mencionadas anteriormente, pero también un segundo con la totalidad de las variables del dataset. Se obtiene una mejor precisión con la totalidad de las variables, pasando de 76,27% a 79,1%. También ha mejorado el valor del criterio de Akaike, de 632,27 a 630,79. Para el segundo modelo, el de mayor precisión, se muestra la curva ROC y el valor auc, de 0.8592, por lo que el modelo discrimina de forma excelente. Para el árbol de decisión hemos utilizado todas las variables originales, y observando las reglas de clasificación, las variables más utilizadas son Sex, Pclass, Embarked, Fare y Age. En las predicciones hemos obtenido un 79,1% de precisión. Finalmente, visualizamos el árbol de decisión con las variables más importantes a la hora de generar reglas.
+
+Por lo tanto, respondiendo a la pregunta que se planteaba como objetivo de este análisis, era más probable sobrevivir en caso de ser mujer, menor de edad, o pertenecer a primera clase.
