@@ -12,13 +12,13 @@ La actividad ha sido realizada conjuntamente por **Albert Casanova González** y
 
 ## Objetivos del proyecto
 
-El objetivo de trabajar con este conjunto de datos es el de comprender qué tipo de pasajeros era más probable que sobreviviera, analizando las variables de las que disponemos y tratando de dar respuesta a este problema.
-
 #### 1. Descripción del dataset. ¿Por qué es importante y qué pregunta/problema pretende responder?
 
 El dataset escogido es Titanic - Machine Learning from Disaster, facilitado como ejemplo en el enunciado de la asignatura, a través del siguiente enlace: https://www.kaggle.com/c/titanic
 
 En este dataset encontramos información sobre los pasajeros que se encontraban a bordo en el último viaje del transatlántico RMS Titanic. Es un juego de datos “clásico” si hablamos de trabajar con algoritmos de clasificación, ya que contiene información sobre si los pasajeros sobrevivieron o no, haciéndolo interesante y siendo un buen punto de partida para practicar con este tipo de problemas.
+
+El objetivo de trabajar con este conjunto de datos es el de comprender qué tipo de pasajeros era más probable que sobreviviera, analizando las variables de las que disponemos y tratando de dar respuesta a este problema.
 
 #### 2. Integración y selección de los datos de interés a analizar. Puede ser el resultado de adicionar diferentes datasets o una subselección útil de los datos originales, en base al objetivo que se quiera conseguir.
 
