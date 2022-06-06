@@ -4,12 +4,15 @@ author: "Xuan Zheng & Albert Casanova González"
 date: "5/27/2022"
 output: html_document
 ---
-Instalamos y cargamos las librerías ggplot2 y dplry.
+Instalamos y cargamos las librerías necesarias
 ```{r message= FALSE, warning=FALSE}
-# https://cran.r-project.org/web/packages/ggplot2/index.html
 if (!require('ggplot2')) install.packages('ggplot2'); library('ggplot2')
-# https://cran.r-project.org/web/packages/dplyr/index.html
 if (!require('dplyr')) install.packages('dplyr'); library('dplyr')
+if (!require('rcompanion')) install.packages('rcompanion'); library('rcompanion')
+if (!require('gridExtra')) install.packages('gridExtra'); library('gridExtra')
+if (!require('nortest')) install.packages('nortest'); library('nortest')
+if (!require('caret')) install.packages('caret'); library('caret')
+if (!require('pROC')) install.packages('pROC'); library('pROC')
 ```
 
 ******
@@ -39,7 +42,7 @@ colSums(is.na(titanic)) # hay valores perdidos en Age
 titanic$Age[is.na(titanic$Age)] <- median(titanic$Age,na.rm=T)
 ```
 
-Segundo, buscado los strings vacíos que existen en el dataset y sustituirlos con 'Desconocido' para que queden más claro.
+Segundo, buscamos los strings vacíos que existen en el dataset y sustituirlos con 'Desconocido' para que queden más claro.
 ```{r message= FALSE, warning=FALSE}
 colSums(titanic=="") # hay strings vacíos en Embarked y Cabin
 titanic$Embarked[titanic$Embarked==""] <- "Desconocido"
@@ -89,14 +92,6 @@ titanic$Age<-as.integer(titanic$Age)
 
 
 ## Normalidad
-```{r message= FALSE, warning=FALSE}
-# Instalamos las librerias necesarias
-if(!require(nortest)){
-    install.packages('nortest', repos='http://cran.us.r-project.org')
-    library(nortest)
-}
-```
-
 
 ```{r message= FALSE, warning=FALSE}
 qqnorm(titanic$Age)
@@ -108,7 +103,7 @@ Como podemos observar los puntos no están sobre la línea diagonal, por lo que 
 ```{r message= FALSE, warning=FALSE}
 lillie.test(titanic$Age)
 ```
-Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
+Aplicamos el test de Lilliefors para comprobar la normalidad. Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
 
 ```{r message= FALSE, warning=FALSE}
 qqnorm(titanic$Fare)
@@ -119,41 +114,98 @@ Como podemos observar los puntos no están sobre la línea diagonal, por lo que 
 ```{r message= FALSE, warning=FALSE}
 lillie.test(titanic$Fare)
 ```
-Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
+Aplicamos el test de Lilliefors para comprobar la normalidad. Con el valor del p-value, que es menor que el nivel de significancia (por ejemplo 0.05), podemos rechazar la hipótesis nula de normalidad de los datos.
 
 
 ## 4.3. Aplicación de pruebas estadísticas para comparar los grupos de datos
+### Primera visualizacion 
+Para tener una idea general sobre la distribución de las variables, hacemos la primera visualización.
+
+1. Visualizamos las variables categóricas contra la variable *Survived*
+```{r message= FALSE, warning=FALSE}
+titanic$AgeCut <- cut(titanic$Age, breaks = c(-1, 18, Inf), labels = c('menor', 'adulto'))
+
+plot_gender <- ggplot(data=titanic, aes(x=Sex, fill=Survived))+geom_bar(position = 'fill', show.legend = FALSE)
+plot_pclass <- ggplot(data=titanic, aes(x=Pclass, fill=Survived))+geom_bar(position = 'fill', show.legend = FALSE)
+plot_siblings <- ggplot(data=titanic, aes(x=SibSp, fill=Survived))+geom_bar(position = 'fill', show.legend = FALSE)
+plot_parch <- ggplot(data=titanic, aes(x=Parch, fill=Survived))+geom_bar(position = 'fill', show.legend = FALSE)
+plot_embarked <- ggplot(data=titanic, aes(x=Embarked, fill=Survived))+geom_bar(position = 'fill', show.legend = FALSE)
+plot_age_cut <- ggplot(data=titanic, aes(x=AgeCut, fill=Survived))+geom_bar(position = 'fill')
+
+grid.arrange(plot_gender, plot_pclass, plot_siblings, plot_parch, plot_embarked, plot_age_cut, ncol=3)
+```
+
+2. Visualizamos las variables numéricas contra la variable *Survived*
+```{r message= FALSE, warning=FALSE}
+agg_mean_fare <- aggregate(titanic$Fare,by=list(titanic$Survived),FUN=mean)
+plot_mean_fare <- ggplot(titanic, aes(x = Survived, y = Fare)) + geom_violin(fill = "grey") + geom_boxplot(width = .2, fill = "lightyellow")
+
+agg_mean_age <- aggregate(titanic$Age,by=list(titanic$Survived),FUN=mean)
+plot_mean_age <- ggplot(titanic, aes(x = Survived, y = Age)) + geom_violin(fill = "grey") + geom_boxplot(width = .2, fill = "lightyellow")
+
+grid.arrange(plot_mean_fare, plot_mean_age, ncol=2)
+```
+
+Con las visualizaciones anteriores, podemos observar que existe mucha diferencia de la probalibidad de supervivencia por género, clase, edad. Para comprobar nuestras suposiciones, realizamos los contrastes de hipótesis. 
+
+### Contraste de hipótesis
+1. Las variables independientes categóricas
+```{r message= FALSE, warning=FALSE}
+# Usamos la medida de Cramer V para constrar la asociadión entre las 2 variables nominales 
+gender_survived <- table(titanic$Survived, titanic$Sex)
+cramerV(gender_survived) # rcompanion
+
+pclass_survived <- table(titanic$Survived, titanic$Pclass)
+cramerV(pclass_survived)
+
+embarked_survived <- table(titanic$Survived, titanic$Embarked)
+cramerV(embarked_survived)
+
+sibling_survived <- table(titanic$Survived, titanic$SibSp)
+cramerV(sibling_survived)
+
+parch_survived <- table(titanic$Survived, titanic$Parch)
+cramerV(parch_survived)
+```
+
+Sabemos que los valores de Cramer V entre 0.1 y 0.3 nos indican que la asociación estadística es baja, y entre 0.3 y 0.5 se puede considerar una asociación media. Finalmente, si los valores fueran superiores a 0.5 (no es el caso), la asociación estadística entre las variables sería alta. 
+
+Por lo tanto, las varaibles de *Sex* y *Pclass* tienen una asociación más alta entre todas.
+
+2. ANOVA
+```{r message= FALSE, warning=FALSE}
+# Usamos ANOVA para determinar si las variables son significantes
+gmodel <- glm(Survived ~ . - AgeCut, data = titanic, family = binomial(link = logit))
+anova(gmodel, test = "Chisq")
+```
+
+Como hemos observado anteriormente, *PClass*, *Sex*, *Age* han demostrado un nivel más significativo entre todas las variables independientes.
 
 ### Predicción
 ```{r message= FALSE, warning=FALSE}
 # Separamos en dataset de train y de test
+set.seed(123)
 split = sort(sample(nrow(titanic), nrow(titanic)*0.8))
 
 train <- titanic[split,]
 test <- titanic[-split,]
 ```
 
-```{r message= FALSE, warning=FALSE}
-# Creamos el modelo de regresión logística
-model_logist <- glm(Survived ~ . , data = train, family ="binomial")
-```
 
+El primer modelo de regresión logística contará con las variables PClass, Sex, y Age, que son las más relevantes
 ```{r message= FALSE, warning=FALSE}
+model_logist <- glm(Survived ~ Pclass + Sex + Age , data = train, family ="binomial")
+
 summary(model_logist)
 ```
 
-```{r message= FALSE, warning=FALSE}
-# Instalamos los paquetes requeridos
-if(!require(caret)){
-    install.packages('caret', repos='http://cran.us.r-project.org')
-    library(caret)
-}
-```
+Vemos que con la selección de las variables más relevantes, el criterio AIC es de 632.27.
 
 ```{r message= FALSE, warning=FALSE}
 # Realizamos predicción sobre el test
 pred_test = predict(model_logist, test, type = "response")
 ```
+
 
 ```{r message= FALSE, warning=FALSE}
 # Definimos a partir de qué probabilidad queremos que asigne a 1 o a 0 y mostramos la matriz de confusión
@@ -161,29 +213,47 @@ pred_test = as.factor(ifelse(pred_test >= 0.5, yes = 1, no = 0))
 confusionMatrix(test$Survived, pred_test)
 ```
 
-```{r message= FALSE, warning=FALSE}
+Obtenemos una precisión del 76,27%
 
+
+Creamos un segundo modelo de regresión logística, esta vez con todas las variables excepto AgeCut.
+```{r message= FALSE, warning=FALSE}
+# Creamos el modelo de regresión logística
+model_logist2 <- glm(Survived ~ . - AgeCut , data = train, family ="binomial")
+summary(model_logist2)
+```
+
+El resultado del criterio de AIC es más bajo, de 630.79. Por lo tanto escogeríamos el segundo modelo
+```{r message= FALSE, warning=FALSE}
+# Realizamos predicción sobre el test
+pred_test2 = predict(model_logist2, test, type = "response")
 ```
 
 ```{r message= FALSE, warning=FALSE}
+# Definimos a partir de qué probabilidad queremos que asigne a 1 o a 0 y mostramos la matriz de confusión
+pred_test2 = as.factor(ifelse(pred_test2 >= 0.5, yes = 1, no = 0))
+confusionMatrix(test$Survived, pred_test2)
+```
+La precisión también mejora, hemos obtenido una precisión del 79.1%. 
 
+
+Dibujamos la curva ROC
+
+```{r message= FALSE, warning=FALSE}
+prob=predict(model_logist2, train, type="response")
+r=roc(train$Survived, prob, data=train)
 ```
 
 ```{r message= FALSE, warning=FALSE}
-
+plot(r)
 ```
 
+
+Calculamos el area debajo de la curva
 ```{r message= FALSE, warning=FALSE}
-
+auc(r)
 ```
-
-```{r message= FALSE, warning=FALSE}
-
-```
-
-```{r message= FALSE, warning=FALSE}
-
-```
+Con los resultados del AUROC, podemos decir que el modelo discrimina de forma excelente.
 
 ```{r message= FALSE, warning=FALSE}
 
