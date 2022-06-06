@@ -1,4 +1,18 @@
 # Tipología y ciclo de vida de los datos
+#### Práctica 2: Limpieza y análisis de datos
+
+## El contexto
+Esta práctica se ha realizado bajo el contexto de la asignatura Tipología y ciclo de vida de los datos, perteneciente al
+Máster en Ciencia de Datos de la Universitat Oberta de Catalunya. En esta práctica se elabora un caso práctico orientado a aprender a identificar los datos
+relevantes para un proyecto analítico y usar las herramientas de integración, limpieza, validación
+y análisis de las mismas.
+
+## Miembros del equipo
+La actividad ha sido realizada conjuntamente por **Albert Casanova González** y **Xuan Zheng**.
+
+## Objetivos del proyecto
+
+El objetivo de trabajar con este conjunto de datos es el de comprender qué tipo de pasajeros era más probable que sobreviviera, analizando las variables de las que disponemos y tratando de dar respuesta a este problema.
 
 #### 1. Descripción del dataset. ¿Por qué es importante y qué pregunta/problema pretende responder?
 
