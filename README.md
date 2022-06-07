@@ -44,7 +44,6 @@ Las variables que encontramos son:
 * code/
   * code/prac2.Rmd
   * code/prac2.html
-* data/
   * data/train.csv
   * data/train_clean.csv
 * pdf/
@@ -52,10 +51,9 @@ Las variables que encontramos son:
 * LICENSE
 * README.md
 
-1. La carpeta code/ contiene el fichero **prac2.Rmd** con el código en R utilizado. También el fichero **prac2.html**
-2. La carpeta data/ contiene los ficheros **train.csv** y **train_clean.csv**. Siendo train.csv el fichero inicial, y train_clean.csv el fichero final tras el análisis
-3. La carpeta pdf/ contiene el fichero **titanic-analysis.pdf** con las respuestas a las preguntas.
-4. LICENSE contiene la licencia bajo la que se ha desarrollado el proyecto.
-5. README.md es el archivo que estás leyendo, con la explicación del proyecto.
+1. La carpeta code/ contiene el fichero **prac2.Rmd** con el código en R utilizado, el fichero **prac2.html**. También los ficheros **train.csv** y **train_clean.csv**. Siendo train.csv el fichero inicial, y train_clean.csv el fichero final tras el análisis.
+2. La carpeta pdf/ contiene el fichero **titanic-analysis.pdf** con las respuestas a las preguntas.
+3. LICENSE contiene la licencia bajo la que se ha desarrollado el proyecto.
+4. README.md es el archivo que estás leyendo, con la explicación del proyecto.
 
 
