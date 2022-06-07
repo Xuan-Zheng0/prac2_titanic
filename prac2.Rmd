@@ -65,7 +65,17 @@ titanic$Embarked[titanic$Embarked==""] <- "Desconocido"
 titanic$Cabin[titanic$Cabin==""] <- "Desconocido"
 ```
 
-## Detección de valores extremos 
+## Detección de valores atípicos 
+Primero, buscamos si existen valores atípicos en las variables categóricas. 
+```{r message= FALSE, warning=FALSE}
+names <- c('Survived', 'Pclass', 'Sex', 'Embarked')
+for (n in names) {
+  print(unique(titanic[n]))
+}
+```
+
+Vemos que las columnas categóricas no contienen valores erróneos.
+
 Aplicamos el diagrama de caja en las columnas numéricas para encontrar los valores extremos.
 ```{r message= FALSE, warning=FALSE}
 age_boxplot <- ggplot(data=titanic, aes(x=Age))+geom_boxplot()+ coord_flip()
